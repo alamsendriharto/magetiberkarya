@@ -2,84 +2,58 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>MAGETI BERKARYA BOT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mageti Berkarya</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      background: #f5f5f5;
-    }
-    h1 {
-      color: #333;
-    }
-    #chatbox {
-      border: 1px solid #ccc;
-      padding: 1rem;
-      height: 300px;
-      overflow-y: scroll;
-      background: white;
-    }
-    input, button {
-      padding: 0.5rem;
-      margin-top: 1rem;
-      width: 100%;
-    }
+    body { font-family: Arial; padding: 2rem; background: #f4f4f4; }
+    h1 { color: #333; }
+    .karya { background: #fff; margin: 1rem 0; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+    img { max-width: 100%; height: auto; }
+    .chat { margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 8px; }
+    #response { color: green; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>💬 MAGETI BERKARYA Chatbot</h1>
-  <div id="chatbox"></div>
-  <input type="text" id="userInput" placeholder="Tulis pesan di sini..." />
-  <button onclick="sendMessage()">Kirim</button>
+  <h1>📚 Daftar Karya Siswa Mageti Berkarya</h1>
+  <div id="karya-container">Loading...</div>
+
+  <div class="chat">
+    <h3>💬 Tanya Bot:</h3>
+    <input type="text" id="userInput" placeholder="Tulis pertanyaan..." style="width:80%;" />
+    <button onclick="askBot()">Kirim</button>
+    <p id="response">🤖 Bot: </p>
+  </div>
 
   <script>
-    const chatbox = document.getElementById("chatbox");
-    const input = document.getElementById("userInput");
-
-    const sheetAPI = "https://script.google.com/macros/s/AKfycbwJGVdOje7xKo9Sp6nO0roUxyknW_0pZsGAVbTszVsG2gzIBd2hIf06aui0Zt0ppGwvQQ/exec";
-    const apiKey = "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"; // Ganti jika perlu
-
-    async function sendMessage() {
-      const userText = input.value.trim();
-      if (!userText) return;
-      appendMessage("👩‍🏫 Anda: " + userText);
-
-      // Ambil data karya
-      const karyaRes = await fetch(sheetAPI);
-      const karyaData = await karyaRes.json();
-      const karyaList = karyaData.data.map((item, i) =>
-        `${i + 1}. "${item["Judul Karya"]}" oleh ${item["Nama Siswa"]} - ${item["Deskripsi"]}`
-      ).join("\n");
-
-      const prompt = `Berikut daftar karya siswa:\n${karyaList}\n\nPertanyaan pengguna:\n"${userText}"\n\nJawablah seperti chatbot pameran karya.`;
-
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: "Kamu adalah chatbot ramah untuk pameran karya siswa." },
-            { role: "user", content: prompt }
-          ]
-        })
+    // Load data dari Google Sheet via Web Apps
+    fetch("https://script.google.com/macros/s/AKfycbwJGVdOje7xKo9Sp6nO0roUxyknW_0pZsGAVbTszVsG2gzIBd2hIf06aui0Zt0ppGwvQQ/exec")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("karya-container");
+        container.innerHTML = "";
+        data.forEach(row => {
+          container.innerHTML += `
+            <div class="karya">
+              <h3>🎓 ${row.NamaSiswa} (${row.Kelas})</h3>
+              <p><strong>${row.JudulKarya}</strong></p>
+              <p>${row.Deskripsi}</p>
+              <img src="${row.FotoKarya.replace("open?", "uc?")}" alt="Karya ${row.NamaSiswa}" />
+            </div>
+          `;
+        });
+      })
+      .catch(() => {
+        document.getElementById("karya-container").innerText = "Gagal memuat data.";
       });
 
-      const data = await res.json();
-      const reply = data?.choices?.[0]?.message?.content || "🤖 Bot tidak bisa menjawab.";
-      appendMessage("🤖 Bot: " + reply);
-
-      input.value = "";
-    }
-
-    function appendMessage(message) {
-      const msgElem = document.createElement("div");
-      msgElem.textContent = message;
-      chatbox.appendChild(msgElem);
-      chatbox.scrollTop = chatbox.scrollHeight;
+    // Bot dummy (local)
+    function askBot() {
+      const input = document.getElementById("userInput").value.toLowerCase();
+      let jawaban = "🤖 Bot tidak bisa menjawab.";
+      if (input.includes("halo")) jawaban = "Halo juga! 👋";
+      else if (input.includes("siapa kamu")) jawaban = "Saya adalah Bot Mageti Berkarya!";
+      else if (input.includes("karya siapa")) jawaban = "Silakan lihat daftar karya di atas ya!";
+      document.getElementById("response").innerText = `🤖 Bot: ${jawaban}`;
     }
   </script>
 </body>
