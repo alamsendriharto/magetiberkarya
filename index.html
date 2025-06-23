@@ -1,186 +1,115 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BCK AI – Info & Chatbot</title>
-  <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Asisten Tambran</title>
   <style>
     body {
-      margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(120deg, #e0f7fa, #ffffff);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: #0077a8;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
       color: #fff;
-      padding: 1rem;
+      margin: 0;
+      padding: 0;
+      animation: fadeIn 1s ease-in;
+    }
+
+    h1 {
       text-align: center;
+      padding: 20px;
+      animation: slideInDown 1s ease-in-out;
     }
-    .feed-list {
-      flex: 1;
-      padding: 1rem;
-      max-width: 800px;
+
+    @keyframes slideInDown {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .container {
+      max-width: 600px;
       margin: auto;
-      overflow-y: auto;
+      padding: 20px;
+    }
+
+    textarea, button {
       width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
     }
-    .feed-item {
-      background: #fff;
-      margin-bottom: 1rem;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeInUp 0.4s forwards;
-    }
-    @keyframes fadeInUp {
-      to { opacity:1; transform:translateY(0); }
-    }
-    .feed-item h3 { margin: 0 0 0.5rem; }
-    .feed-item a { color: #0077a8; text-decoration: none; }
-    .chatbox {
-      background: #ffffff;
-      padding: 1rem;
-      border-top: 1px solid #ddd;
-    }
-    .chat-log {
-      max-height: 200px;
-      overflow-y: auto;
-      margin-bottom: .5rem;
-    }
-    .msg {
-      margin: 5px;
-      padding: .5rem;
-      border-radius: 5px;
-    }
-    .msg-user { background: #cde4ff; text-align: right; }
-    .msg-bot  { background: #e8f5e9; text-align: left; }
-    .chat-input {
-      display: flex;
-      gap: .5rem;
-    }
-    .chat-input input {
-      flex: 1;
-      padding: .5rem;
-      font-size: 1rem;
-      border-radius:4px;
-      border:1px solid #ccc;
-    }
-    .chat-input button {
-      padding: .5rem 1rem;
-      background: #0077a8;
-      color: white;
-      border: none;
-      border-radius:4px;
-      cursor: pointer;
+
+    .response {
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <header data-aos="fade-down">
-    <h1>BCK AI – Info & Chatbot</h1>
-    <p>Tanya apa saja tentang posting terbaru blog BCK</p>
-  </header>
 
-  <main class="feed-list" id="feed"></main>
+  <h1>Asisten Tambran 🤖</h1>
+  <div class="container">
+    <textarea id="question" placeholder="Tanyakan sesuatu tentang Tambran..."></textarea>
+    <button onclick="askBot()">Tanya</button>
+    <div id="response" class="response">Jawaban akan muncul di sini...</div>
+  </div>
 
-  <section class="chatbox" data-aos="fade-up">
-    <div class="chat-log" id="chatLog">
-      <div class="msg msg-bot"><strong>🤖 Bot:</strong> Halo! Tanyakan apa saja tentang topik di atas.</div>
-    </div>
-    <div class="chat-input">
-      <input id="userMsg" placeholder="Tulis pertanyaan..." />
-      <button onclick="askBot()">Kirim</button>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
   <script>
-    AOS.init();
+    const apiKey = "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"; // ganti dengan OpenRouter kamu
 
-    const API_KEY = "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";
-    const RSS_URL = "https://bck12345678.blogspot.com/feeds/posts/default?alt=json";
-    let posts = [];
-
-    async function loadFeed() {
-      try {
-        const res = await fetch(RSS_URL);
-        const json = await res.json();
-        posts = json.feed.entry || [];
-
-        const container = document.getElementById("feed");
-        posts.slice(0, 8).forEach((item, idx) => {
-          const title = item.title.$t;
-          const link = (item.link||[]).find(l => l.rel === "alternate")?.href;
-          const div = document.createElement("div");
-          div.className = "feed-item";
-          div.style.animationDelay = `${idx * 0.1}s`;
-          div.innerHTML = `
-            <h3>${title}</h3>
-            <p><a href="${link}" target="_blank">Baca lengkapnya →</a></p>`;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        console.error("Gagal memuat RSS:", err);
-      }
-    }
-
-    function appendMsg(text, sender) {
-      const msg = document.createElement("div");
-      msg.className = "msg msg-" + sender;
-      msg.innerHTML = `<strong>${sender==="bot"?"🤖 Bot":"👩‍🏫 Anda"}:</strong> ${text}`;
-      const chatLog = document.getElementById("chatLog");
-      chatLog.appendChild(msg);
-      chatLog.scrollTop = chatLog.scrollHeight;
+    async function fetchRSS() {
+      const res = await fetch("https://bck12345678.blogspot.com/feeds/posts/default?alt=rss");
+      const text = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "text/xml");
+      const items = [...xml.querySelectorAll("item")];
+      return items.map(item => ({
+        title: item.querySelector("title").textContent,
+        content: item.querySelector("description").textContent
+      }));
     }
 
     async function askBot() {
-      const question = document.getElementById("userMsg").value.trim();
-      if (!question) return;
-      appendMsg(question, "user");
-      document.getElementById("userMsg").value = "";
-
-      const snippet = posts.slice(0, 5).map(p => {
-        const t = p.title.$t || "";
-        const s = p.summary?.$t || "";
-        return `- ${t}: ${s}`;
-      }).join("\n");
-
-      const prompt = `Berikut ringkasan info blog BCK:\n${snippet}\n\nPertanyaan: ${question}`;
-      let answer = "Maaf, saya tidak dapat menjawab.";
+      const question = document.getElementById("question").value;
+      const responseBox = document.getElementById("response");
+      responseBox.innerHTML = "🔄 Memproses pertanyaan...";
 
       try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const articles = await fetchRSS();
+        const combinedText = articles.map(a => `# ${a.title}\n${a.content}`).join('\n\n');
+
+        const prompt = `Gunakan artikel berikut untuk menjawab pertanyaan:\n\n${combinedText}\n\nPertanyaan: ${question}`;
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${API_KEY}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
             model: "mistralai/mistral-7b-instruct:free",
             messages: [
-              { role: "system", content: "Kamu adalah asisten cerdas, gunakan info posting blog sebagai acuan." },
+              { role: "system", content: "Kamu adalah asisten lokal untuk menjawab pertanyaan seputar Tambran berdasarkan blog yang tersedia." },
               { role: "user", content: prompt }
             ]
           })
         });
-        const data = await res.json();
-        if (data.choices?.[0]?.message?.content) {
-          answer = data.choices[0].message.content.trim();
-        }
+
+        const data = await response.json();
+        const answer = data.choices?.[0]?.message?.content || "Bot tidak bisa menjawab.";
+        responseBox.innerHTML = answer;
       } catch (err) {
         console.error(err);
+        responseBox.innerHTML = "⚠️ Terjadi kesalahan dalam mengambil atau memproses data.";
       }
-
-      appendMsg(answer, "bot");
     }
-
-    loadFeed();
   </script>
+
 </body>
 </html>
