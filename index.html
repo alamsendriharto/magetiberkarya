@@ -2,59 +2,63 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mageti Berkarya</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bot Pamer Karya</title>
   <style>
-    body { font-family: Arial; padding: 2rem; background: #f4f4f4; }
-    h1 { color: #333; }
-    .karya { background: #fff; margin: 1rem 0; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-    img { max-width: 100%; height: auto; }
-    .chat { margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 8px; }
-    #response { color: green; font-weight: bold; }
+    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+    #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    .msg { margin-bottom: 10px; }
+    .user { text-align: right; }
+    .bot { text-align: left; }
+    input[type="text"] {
+      width: 100%; padding: 10px; margin-top: 10px;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
-  <h1>📚 Daftar Karya Siswa Mageti Berkarya</h1>
-  <div id="karya-container">Loading...</div>
-
-  <div class="chat">
-    <h3>💬 Tanya Bot:</h3>
-    <input type="text" id="userInput" placeholder="Tulis pertanyaan..." style="width:80%;" />
-    <button onclick="askBot()">Kirim</button>
-    <p id="response">🤖 Bot: </p>
+  <div id="chat">
+    <div class="msg bot">🤖 Bot: Halo! Tulis judul atau nama karya yang kamu cari.</div>
   </div>
+  <input type="text" id="input" placeholder="Tulis di sini..." />
 
   <script>
-    // Load data dari Google Sheet via Web Apps
-    fetch("https://script.google.com/macros/s/AKfycbwJGVdOje7xKo9Sp6nO0roUxyknW_0pZsGAVbTszVsG2gzIBd2hIf06aui0Zt0ppGwvQQ/exec")
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("karya-container");
-        container.innerHTML = "";
-        data.forEach(row => {
-          container.innerHTML += `
-            <div class="karya">
-              <h3>🎓 ${row.NamaSiswa} (${row.Kelas})</h3>
-              <p><strong>${row.JudulKarya}</strong></p>
-              <p>${row.Deskripsi}</p>
-              <img src="${row.FotoKarya.replace("open?", "uc?")}" alt="Karya ${row.NamaSiswa}" />
-            </div>
-          `;
-        });
-      })
-      .catch(() => {
-        document.getElementById("karya-container").innerText = "Gagal memuat data.";
-      });
+    const sheetURL = "https://script.google.com/macros/s/AKfycbwJGVdOje7xKo9Sp6nO0roUxyknW_0pZsGAVbTszVsG2gzIBd2hIf06aui0Zt0ppGwvQQ/exec";
 
-    // Bot dummy (local)
-    function askBot() {
-      const input = document.getElementById("userInput").value.toLowerCase();
-      let jawaban = "🤖 Bot tidak bisa menjawab.";
-      if (input.includes("halo")) jawaban = "Halo juga! 👋";
-      else if (input.includes("siapa kamu")) jawaban = "Saya adalah Bot Mageti Berkarya!";
-      else if (input.includes("karya siapa")) jawaban = "Silakan lihat daftar karya di atas ya!";
-      document.getElementById("response").innerText = `🤖 Bot: ${jawaban}`;
+    async function fetchData() {
+      const res = await fetch(sheetURL);
+      return await res.json();
     }
+
+    function addMessage(text, sender) {
+      const chat = document.getElementById("chat");
+      const div = document.createElement("div");
+      div.className = "msg " + sender;
+      div.innerHTML = `${sender === "user" ? "👩‍🏫" : "🤖"} ${sender === "user" ? "Anda" : "Bot"}: ${text}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    document.getElementById("input").addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        const input = e.target.value.trim();
+        if (!input) return;
+        addMessage(input, "user");
+        e.target.value = "";
+
+        const data = await fetchData();
+        const match = data.find(row =>
+          row["Judul Karya"].toLowerCase().includes(input.toLowerCase()) ||
+          row["Nama Siswa"].toLowerCase().includes(input.toLowerCase())
+        );
+
+        if (match) {
+          addMessage(`Karya oleh ${match["Nama Siswa"]} (${match["Kelas"]}): <b>${match["Judul Karya"]}</b><br>${match["Deskripsi"]}<br><a href="${match["Foto Karya"]}" target="_blank">Lihat Foto</a>`, "bot");
+        } else {
+          addMessage("Maaf, saya tidak menemukan karya yang sesuai.", "bot");
+        }
+      }
+    });
   </script>
 </body>
 </html>
