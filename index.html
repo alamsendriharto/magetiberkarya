@@ -1,64 +1,112 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chatbot Karya Siswa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karya Kamu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
-    #chat { max-width: 600px; margin: auto; background: #fff; padding: 15px; border-radius: 8px; }
-    .msg { margin: 10px 0; }
-    .user { text-align: right; color: blue; }
-    .bot { text-align: left; color: green; }
-    input[type=text] { width: 100%; padding: 10px; box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      animation: fadeIn 1s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      margin-top: 50px;
+      font-size: 2.5em;
+      animation: slideIn 1s ease-in-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .form-group {
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #00c6ff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0072ff;
+    }
+
+    .result {
+      margin-top: 30px;
+      text-align: center;
+      background-color: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      animation: fadeIn 1s ease-in-out;
+    }
   </style>
 </head>
 <body>
-  <div id="chat">
-    <div class="msg bot">🤖 Bot: Halo, tanya tentang karya siswa!</div>
+  <h1>🎨 Cari Karya Kamu</h1>
+  <div class="form-group">
+    <input type="text" id="namaInput" placeholder="Masukkan namamu...">
+    <button onclick="cariKarya()">Cari</button>
   </div>
-  <input type="text" id="inp" placeholder="Ketik judul atau nama..." />
+  <div id="hasil" class="result"></div>
 
   <script>
-    const appUrl = "https://script.google.com/macros/s/AKfycbwJGVdOje7xKo9Sp6nO0roUxyknW_0pZsGAVbTszVsG2gzIBd2hIf06aui0Zt0ppGwvQQ/exec";
-    let sheetData = [];
-
-    fetch(appUrl)
-      .then(res => res.json())
-      .then(data => { sheetData = data; })
-      .catch(err => console.error("Fetch error", err));
-
-    document.getElementById("inp").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        const v = e.target.value.trim().toLowerCase();
-        if (!v) return;
-        addMsg(e.target.value, "user");
-        setTimeout(() => replyLocal(v), 500);
-        e.target.value = "";
+    async function cariKarya() {
+      const nama = document.getElementById('namaInput').value.trim();
+      const hasilDiv = document.getElementById('hasil');
+      hasilDiv.innerHTML = '⏳ Mencari karya...';
+      try {
+        const res = await axios.get(`https://script.google.com/macros/s/AKfycbyo_MtTkdztCSWUimZzH5-CHdtN6SO4HfPdeaYBGZ3GVY0n3Z3xcWEsvjZIdWrwvHx_gg/exec?nama=${encodeURIComponent(nama)}`);
+        if (res.data && res.data.karya) {
+          hasilDiv.innerHTML = `
+            <h2>📜 Hasil Ditemukan</h2>
+            <p><strong>Nama:</strong> ${res.data.nama}</p>
+            <p><strong>Judul Karya:</strong> ${res.data.karya}</p>
+            <p><strong>Deskripsi:</strong> ${res.data.deskripsi}</p>
+          `;
+        } else {
+          hasilDiv.innerHTML = '😔 Maaf, karya tidak ditemukan.';
+        }
+      } catch (error) {
+        console.error(error);
+        hasilDiv.innerHTML = '⚠️ Terjadi kesalahan saat mengambil data.';
       }
-    });
-
-    function replyLocal(q) {
-      const found = sheetData.find(r =>
-        r["Nama Siswa"]?.toLowerCase().includes(q) ||
-        r["Judul Karya"]?.toLowerCase().includes(q)
-      );
-      if (found) {
-        addMsg(
-          `Karya: "${found["Judul Karya"]}" oleh ${found["Nama Siswa"]}, kelas ${found["Kelas"]}. Deskripsi: ${found["Deskripsi"]}`,
-          "bot"
-        );
-      } else {
-        addMsg("🤖 Bot: Maaf, saya tidak menemukan karya tersebut.", "bot");
-      }
-    }
-
-    function addMsg(text, cls) {
-      const d = document.createElement("div");
-      d.className = `msg ${cls}`;
-      d.innerHTML = (cls==="user"?"👩‍🏫 Anda":"🤖 Bot") + ": " + text;
-      document.getElementById("chat").appendChild(d);
-      window.scrollTo(0, document.body.scrollHeight);
     }
   </script>
 </body>
