@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot SDN Bulukerto</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    #chatArea {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      background: #f9f9f9;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 14px;
+      width: 100%;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🤖 Chatbot Karya Siswa SDN Bulukerto</h2>
+  <div id="chatArea"></div>
+  <input id="userInput" placeholder="Tulis pertanyaan..." />
+  <button onclick="kirim()">Kirim</button>
+
+<script>
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbXT0XY5AN0jP9BVvGE4wjSMWepzCxq0xWqyM96IoNauKt4K9P45UFG4BIDQxqnLUAUj1mvZ3WR-hV/pub?output=csv";
+const API_KEY = "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";
+
+async function getSheetData() {
+  const res = await fetch(SHEET_URL);
+  const csv = await res.text();
+  const rows = csv.trim().split("\n").map(row => row.split(","));
+  const headers = rows[0];
+  const data = rows.slice(1).map(row => {
+    let obj = {};
+    row.forEach((cell, i) => obj[headers[i]] = cell);
+    return obj;
+  });
+  return data;
+}
+
+async function kirim() {
+  const input = document.getElementById("userInput");
+  const chat = document.getElementById("chatArea");
+  const pesan = input.value.trim();
+
+  if (!pesan) return;
+  chat.innerHTML += `<div><b>👩‍🏫 Anda:</b> ${pesan}</div>`;
+  input.value = "Tunggu..."; input.disabled = true;
+
+  try {
+    const data = await getSheetData();
+    const karya = data.map(d => `Nama: ${d.Nama}, Judul: ${d.Judul}, Tema: ${d.Tema}`).join("\n");
+    const prompt = `Berikut adalah data karya siswa SDN Bulukerto:\n${karya}\n\nPertanyaan: ${pesan}\nJawaban:`;
+
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + API_KEY
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct",
+        messages: [
+          { role: "system", content: "Kamu adalah chatbot kepala sekolah yang menjawab berdasarkan data karya siswa." },
+          { role: "user", content: prompt }
+        ]
+      })
+    });
+
+    const result = await res.json();
+    const jawaban = result.choices?.[0]?.message?.content || "🤖 Bot tidak bisa menjawab.";
+    chat.innerHTML += `<div><b>🤖 Bot:</b> ${jawaban}</div><br>`;
+  } catch (err) {
+    chat.innerHTML += `<div style="color:red;">❌ Bot gagal menjawab. Coba lagi nanti.</div>`;
+  }
+
+  input.value = ""; input.disabled = false; input.focus();
+}
+</script>
+</body>
+</html>
